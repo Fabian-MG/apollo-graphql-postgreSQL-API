@@ -1,0 +1,6 @@
+
+#noe modules
+/node_modules
+
+#Enviroment variables
+.env
