@@ -7,7 +7,7 @@ export default {
       return await models.User.findById(id);
     },
     me: async (parent, args, { models, me }) => {
-      return await models.User.findById(me.id);
+      return !me ? null : await models.User.findById(me.id);
     },
   },
 
