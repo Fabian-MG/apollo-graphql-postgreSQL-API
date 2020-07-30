@@ -93,6 +93,10 @@ const createUsersWithMessages = async (date) => {
           text: "Published a complete ...",
           createdAt: date.setSeconds(date.getSeconds() + 1),
         },
+        {
+          text: "Second published a complete ...",
+          createdAt: date.setSeconds(date.getSeconds() + 1),
+        },
       ],
     },
     {
