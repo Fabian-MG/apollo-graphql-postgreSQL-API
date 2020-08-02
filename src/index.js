@@ -1,7 +1,6 @@
 import "dotenv/config";
 import http from "http";
 import cors from "cors";
-// import uuidv4 from "uuid/v4";
 import jwt from "jsonwebtoken";
 import express from "express";
 import { ApolloServer, AuthenticationError } from "apollo-server-express";
@@ -9,6 +8,7 @@ import { ApolloServer, AuthenticationError } from "apollo-server-express";
 import schema from "./schema";
 import resolvers from "./resolvers";
 import models, { sequelize } from "./models";
+import DataLoader from "dataloader";
 
 const app = express();
 
@@ -25,6 +25,20 @@ const getMe = async (req) => {
     }
   }
 };
+
+const batchUsers = async (keys, models) => {
+  const users = await models.User.findAll({
+    where: {
+      id: {
+        $in: keys,
+      },
+    },
+  });
+
+  return keys.map((key) => users.find((user) => user.id === key));
+};
+
+const userLoader = new DataLoader((keys) => batchUsers(keys, models))
 
 const server = new ApolloServer({
   typeDefs: schema,
@@ -47,6 +61,9 @@ const server = new ApolloServer({
         models,
         me,
         secret: process.env.SECRET,
+        loaders: {
+          user: userLoader,
+        },
       };
     }
   },
@@ -57,10 +74,12 @@ server.applyMiddleware({ app, path: "/graphql" });
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 
-const eraseDatabaseOnSync = true;
+// const eraseDatabaseOnSync = true;
 
-sequelize.sync({ force: eraseDatabaseOnSync }).then(async () => {
-  if (eraseDatabaseOnSync) {
+const isTest = !!process.env.TEST_DATABASE;
+
+sequelize.sync({ force: isTest }).then(async () => {
+  if (isTest) {
     createUsersWithMessages(new Date());
   }
 
@@ -101,29 +120,6 @@ const createUsersWithMessages = async (date) => {
         {
           text: "Published a complete ...",
           createdAt: date.setSeconds(date.getSeconds() + 1),
-        },
-        {
-          text: "Second published a complete ...",
-          createdAt: date.setSeconds(date.getSeconds() + 1),
-        },
-      ],
-    },
-    {
-      include: [models.Message],
-    }
-  );
-
-  await models.User.create(
-    {
-      username: "fabian",
-      email: "hello@fabian.com",
-      password: "ffabian",
-      messages: [
-        {
-          text: "New here ...",
-        },
-        {
-          text: "Amazing book by the way ...",
         },
       ],
     },
